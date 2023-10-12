@@ -17,7 +17,7 @@ vim-builtins.txt:
 dev: $(TSDIR)
 $(TSDIR):
 	@git clone --depth=1 $(TS_REPO)
-	@printf "\33[1m\33[31mNote\33[22m npm build can take a while" >&2
+	@printf "\e[1m\e[31mNote\e[22m\e[0m npm build can take a while\n" >&2
 	cd $(TSDIR) &&                                         \
 		npm --loglevel=info --progress=true install && \
 		npm run generate

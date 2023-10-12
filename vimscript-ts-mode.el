@@ -88,8 +88,7 @@
 (defvar vimscript-ts-mode--syntax-table
   (let ((table (make-syntax-table)))
     (modify-syntax-entry ?'  "\"" table)
-    ;; XXX: comment or string here or in propertize?
-    ;; (modify-syntax-entry ?\" "<"  table)
+    (modify-syntax-entry ?\" "<"  table)
     (modify-syntax-entry ?\n ">"  table)
     (modify-syntax-entry ?#  "_"  table)
     (modify-syntax-entry ?& "'" table)
@@ -191,20 +190,13 @@
                     'font-lock-escape-face))))
     (treesit-fontify-with-override beg end face override)))
 
-;;; TODO: syntactic
-;; - (pattern) -> string syntax
-;; - (string_literal) -> string syntax
 (defvar vimscript-ts-mode--s-p-query
   (when (treesit-available-p)
-    (treesit-query-capture 'vim
-                           '(((syntax_argument (pattern) @regexp))
-                             ((syntax_statement (pattern) @regexp))
-                             ((pattern) @string)
-                             ((pattern_multi) @string)
-                             ((comment) @comment)
-                             ;; (([(pattern) (pattern_multi)] @string))
-                             ;; ((string_literal) @string)
-                             ))))
+    (treesit-query-compile
+     'vim
+     '(((syntax_argument (pattern) @regexp))
+       ((syntax_statement (pattern) @regexp))
+       ((string_literal) @string)))))
 
 (defun vimscript-ts-mode--syntax-propertize (start end)
   "Apply syntax text properties between START and END for `vimscript-ts-mode'."
@@ -216,14 +208,11 @@
                        ('regexp
                         (cl-decf ns)
                         (cl-incf ne)
-                        (string-to-syntax "\"/"))
+                        (string-to-syntax "|"))
                        ('string
-                        (string-to-syntax "\"/"))
-                       ('comment
-                        (string-to-syntax ">")))))
+                        (string-to-syntax "\"")))))
         (put-text-property ns (1+ ns) 'syntax-table syntax)
-        (unless (eq 'comment name)
-          (put-text-property (1- ne) ne 'syntax-table syntax))))))
+        (put-text-property (1- ne) ne 'syntax-table syntax)))))
 
 (defvar vimscript-ts-mode--font-lock-settings
   (treesit-font-lock-rules
@@ -245,7 +234,7 @@
      (colorscheme_statement (name) @font-lock-string-face)
      (syntax_statement (keyword) @font-lock-string-face)
 
-     ;; embedded langs
+     ;; XXX: embedded langs
      ;; (python_statement (chunk))
      ;; (perl_statement (chunk))
      ;; (ruby_statement (chunk))
@@ -361,8 +350,8 @@
    :feature 'function
    ;; :override 'keep
    `((call_expression
-      ;; XXX: how to match preceding part only of
-      ;; function: (identifier (curly_brace_name))
+      ;; XXX: how to match preceding part only of function: (identifier
+      ;; (curly_brace_name)), eg. 'foo_' in foo_{{x -> x*10}}()
       function: (identifier) @font-lock-function-call-face
       "(" [(identifier)] @font-lock-variable-use-face :* ")")
 
@@ -419,7 +408,7 @@
   "See `treesit-sexp-type-regexp' for more information.")
 
 (defvar vimscript-ts-mode--text-nodes
-  (rx (or "comment" "string" "filename" "pattern" "heredoc" "colorscheme"))
+  (rx (or "comment" "string" "filename" "pattern" "heredoc"))
   "See `treesit-text-type-regexp' for more information.")
 
 ;;; Imenu
@@ -467,10 +456,9 @@
     ;; Imenu
     (setq-local treesit-simple-imenu-settings vimscript-ts-mode--imenu-settings)
 
-    ;; FIXME: the nodes are out-of-date when this runs?
-    (setq-local syntax-propertize-function #'vimscript-ts-mode--syntax-propertize)
+    (treesit-major-mode-setup)
 
-    (treesit-major-mode-setup)))
+    (setq-local syntax-propertize-function #'vimscript-ts-mode--syntax-propertize)))
 
 (when (treesit-ready-p 'vim)
   (let ((exts (rx (or ".vim" (seq (? (or "." "_")) (? "g") "vimrc") ".exrc") eos)))
