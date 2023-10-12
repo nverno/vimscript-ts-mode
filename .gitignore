@@ -1,0 +1,6 @@
+*.elc
+*~
+*autoloads.el
+*loaddefs.el
+tree-sitter-*
+vim-builtins.txt
