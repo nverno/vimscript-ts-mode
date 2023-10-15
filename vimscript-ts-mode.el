@@ -37,19 +37,27 @@
 ;;  - imenu
 ;;  - structural navigation using tree-sitter objects
 ;;
+;; When parsers are available for lua or ruby, they will be used to
+;; parse embedded code blocks. See `lua-ts-mode' and `ruby-ts-mode'
+;; for more information about those parsers.
+;;
 ;;; Installation:
 ;;
-;; Install the tree-sitter grammar
+;; Install the tree-sitter grammar for vim
 ;;
 ;;     (add-to-list
 ;;      'treesit-language-source-alist
 ;;      '(vim "https://github.com/neovim/tree-sitter-vim"))
+;; 
+;; Optionally, install grammars for `lua-ts-mode' and `ruby-ts-mode' to
+;; enable font-locking/indentation for embedded lua / ruby code.
 ;;
 ;; And call `treesit-install-language-grammar' to complete the installation.
 ;;
 ;;; Code:
 
 (eval-when-compile (require 'cl-lib))
+(require 'seq)
 (require 'treesit)
 
 (defcustom vimscript-ts-mode-indent-level 2
@@ -82,6 +90,10 @@
   '((t (:inherit font-lock-preprocessor-face)))
   "Face to highlight here-documents in `vimscript-ts-mode'."
   :group 'vim)
+
+(defface vimscript-ts-mode-embedded-face
+  '((t :inherit (org-block) :extend t))
+  "Face to highlight embedded language blocks.")
 
 ;;; Syntax
 
@@ -135,7 +147,8 @@
 (defvar vimscript-ts-mode--feature-list
   '(( comment definition)
     ( keyword string)
-    ( assignment property type constant literal operator function escape-sequence)
+    ( assignment property type constant literal operator function
+      escape-sequence embedded)
     ( bracket delimiter variable misc-punctuation)) ;; error
   "`treesit-font-lock-feature-list' for `vimscript-ts-mode'.")
 
@@ -214,6 +227,16 @@
         (put-text-property ns (1+ ns) 'syntax-table syntax)
         (put-text-property (1- ne) ne 'syntax-table syntax)))))
 
+(defvar vimscript-ts-mode--font-lock-embedded
+  (treesit-font-lock-rules
+   :language 'vim
+   :feature 'embedded
+   :override 'append
+   ;; ([lua|python|perl|ruby]_statement (chunk))
+   '((chunk) @vimscript-ts-mode-embedded-face
+     (script (body) @vimscript-ts-mode-embedded-face)))
+  "Font-locking for embedded language blocks.")
+
 (defvar vimscript-ts-mode--font-lock-settings
   (treesit-font-lock-rules
    :language 'vim
@@ -232,13 +255,7 @@
      [(command) (filename) (string_literal)] @font-lock-string-face
      (heredoc (body) @font-lock-string-face)
      (colorscheme_statement (name) @font-lock-string-face)
-     (syntax_statement (keyword) @font-lock-string-face)
-
-     ;; XXX: embedded langs
-     ;; (python_statement (chunk))
-     ;; (perl_statement (chunk))
-     ;; (ruby_statement (chunk))
-     (script (body) @vimscript-ts-mode-heredoc-face))
+     (syntax_statement (keyword) @font-lock-string-face))
    
    :language 'vim
    :feature 'escape-sequence
@@ -393,6 +410,49 @@
    '((ERROR) @font-lock-warning-face))
   "Tree-sitter font-lock settings for `vimscript-ts-mode'.")
 
+;;; Embedded languages
+;; These are: lua ruby perl python
+
+(defvar lua-ts--font-lock-settings)
+(defvar lua-ts--simple-indent-rules)
+(declare-function ruby-ts--font-lock-settings "ruby-ts-mode")
+(declare-function ruby-ts--indent-rules "ruby-ts-mode")
+
+(defun vimscript-ts-mode--treesit-language-at-point (langs)
+  "Create function to determine language at point using available LANGS."
+  `(lambda (point)
+     (let ((node (treesit-node-at point 'vim)))
+       (if (or (equal (treesit-node-type node) "chunk")
+               (and (equal (treesit-node-type node) "body")
+                    (setq node (treesit-node-parent node))))
+           (pcase (treesit-node-type (treesit-node-parent node))
+             ,@(cl-loop for lang in langs
+                        collect
+                        `(,(concat (symbol-name lang) "_statement") ',lang))
+             (_ 'vim))
+         'vim))))
+
+(defun vimscript-ts-mode--treesit-range-rules (langs)
+  "Create range captures for LANGS."
+  (cl-loop for lang in langs
+           when (treesit-ready-p lang)
+           nconc
+           (let ((stmt (intern (concat (symbol-name lang) "_statement")))
+                 (capture (intern (concat "@" (symbol-name lang)))))
+             (treesit-range-rules
+              :host 'vim
+              :embed lang
+              :local t
+              `((,stmt
+                 (script (body) ,capture))
+                (,stmt (chunk) ,capture))))))
+
+(defun vimscript-ts-mode--merge-features (a b)
+  "Merge `treesit-font-lock-feature-list's A with B."
+  (cl-loop for x in a
+           for y in b
+           collect (seq-uniq (append x y))))
+
 ;;; Navigation
 
 (defun vimscript-ts-mode--defun-name (node)
@@ -455,6 +515,47 @@
 
     ;; Imenu
     (setq-local treesit-simple-imenu-settings vimscript-ts-mode--imenu-settings)
+
+    ;; Embedded parsers
+    (let (langs)
+      (when (treesit-ready-p 'lua t)
+        (require 'lua-ts-mode)
+        (push 'lua langs)
+        (setq-local treesit-font-lock-settings
+                    (append treesit-font-lock-settings lua-ts--font-lock-settings))
+        (setq-local treesit-simple-indent-rules
+                    (append treesit-simple-indent-rules lua-ts--simple-indent-rules)))
+
+      (when (treesit-ready-p 'ruby t)
+        (require 'ruby-ts-mode)
+        (push 'ruby langs)
+        (setq-local treesit-font-lock-settings
+                    (append treesit-font-lock-settings
+                            (ruby-ts--font-lock-settings 'ruby)))
+        (setq-local treesit-simple-indent-rules
+                    (append treesit-simple-indent-rules (ruby-ts--indent-rules)))
+        (setq-local treesit-font-lock-feature-list
+                    (vimscript-ts-mode--merge-features
+                     treesit-font-lock-feature-list
+                     ;; `ruby-ts-mode' `treesit-font-lock-feature-list'
+                     '(( comment method-definition parameter-definition)
+                       ( keyword regexp string type)
+                       ( builtin-variable builtin-constant builtin-function
+                         delimiter escape-sequence
+                         constant global instance
+                         interpolation literal symbol assignment)
+                       ( bracket error function operator punctuation)))))
+      (when langs
+        (setq-local treesit-language-at-point-function
+                    (vimscript-ts-mode--treesit-language-at-point langs))
+        (setq-local treesit-range-settings
+                    (vimscript-ts-mode--treesit-range-rules langs))))
+
+    ;; Last entry in `treesit-font-lock-settings' in case embedded langs are
+    ;; highlighted
+    (setq-local treesit-font-lock-settings
+                (append treesit-font-lock-settings
+                        vimscript-ts-mode--font-lock-embedded))
 
     (treesit-major-mode-setup)
 
