@@ -336,7 +336,7 @@
    :feature 'literal
    '([(float_literal) (integer_literal)] @font-lock-number-face
      ((set_value) @font-lock-number-face
-      (:match "\\`[0-9]+\\(?:\.[0-9]+\\)?\\'" @font-lock-number-face))
+      (:match "\\`[0-9]+\\(?:[.][0-9]+\\)?\\'" @font-lock-number-face))
      (literal_dictionary (literal_key) @font-lock-constant-face)
      ((scoped_identifier
        (scope) @_scope
