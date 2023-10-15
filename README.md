@@ -11,6 +11,10 @@ Features:
 - imenu
 - structural navigation with treesitter objects
 
+When parsers are available for lua or  ruby, they will be used to parse embedded
+code blocks.  See `lua-ts-mode`  and `ruby-ts-mode`  for more  information about
+those parsers.
+
 ![example](doc/vimscript-example.png)
 
 ## Installing
@@ -28,6 +32,9 @@ Add the source to `treesit-language-source-alist`.
  'treesit-language-source-alist
  '(vim "https://github.com/neovim/tree-sitter-vim"))
 ```
+
+Optionally, install grammars for `lua` and `ruby` to enable
+font-locking/indentation for embedded lua / ruby code.
 
 Then run `M-x treesit-install-language-grammar` and select `vim` to install.
 
