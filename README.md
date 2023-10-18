@@ -38,6 +38,10 @@ font-locking/indentation for embedded lua / ruby code.
 
 Then run `M-x treesit-install-language-grammar` and select `vim` to install.
 
+### Install vimscript-ts-mode from melpa
+
+`M-x package-install vimscript-ts-mode`
+
 ### Install vimscript-ts-mode.el from source
 
 - Clone this repository
