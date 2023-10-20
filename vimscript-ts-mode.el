@@ -404,10 +404,11 @@
       lhs: (map_side) @font-lock-variable-name-face
       rhs: _ @font-lock-string-face))
 
-   :language 'vim
-   :feature 'error
-   :override t
-   '((ERROR) @font-lock-warning-face))
+   ;; :language 'vim
+   ;; :feature 'error
+   ;; :override t
+   ;; '((ERROR) @font-lock-warning-face)
+   )
   "Tree-sitter font-lock settings for `vimscript-ts-mode'.")
 
 ;;; Embedded languages
@@ -544,7 +545,7 @@
                          delimiter escape-sequence
                          constant global instance
                          interpolation literal symbol assignment)
-                       ( bracket error function operator punctuation)))))
+                       ( bracket function operator punctuation)))))
       (when langs
         (setq-local treesit-language-at-point-function
                     (vimscript-ts-mode--treesit-language-at-point langs))
