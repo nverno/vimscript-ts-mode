@@ -1,7 +1,5 @@
 ;;; vimscript-ts-mode.el --- Vim-script major mode using tree-sitter -*- lexical-binding: t; -*-
 
-;; This is free and unencumbered software released into the public domain.
-
 ;; Author: Noah Peart <noah.v.peart@gmail.com>
 ;; URL: https://github.com/nverno/vimscript-ts-mode
 ;; Version: 0.0.1
