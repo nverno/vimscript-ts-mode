@@ -274,7 +274,11 @@
      (runtime_statement (where) @font-lock-keyword-face)
      (syntax_argument name: _ @font-lock-keyword-face)
      (map_statement cmd: _ @font-lock-keyword-face)
+
      ["<buffer>" "<nowait>" "<silent>" "<script>" "<expr>" "<unique>"]
+     @font-lock-builtin-face
+
+     [(no_option) (inv_option) (default_option) (option_name)]
      @font-lock-builtin-face)
 
    :language 'vim
@@ -287,11 +291,20 @@
      (bang) @font-lock-warning-face
      (register) @vimscript-ts-mode-register-face
 
+     (for_loop
+      variable: (identifier) @font-lock-variable-name-face)
+
+     (let_statement
+      :anchor (identifier) @font-lock-variable-name-face)
+     (let_statement
+      :anchor (scoped_identifier (identifier) @font-lock-variable-name-face))
+     (let_statement
+      :anchor (list_assignment [(identifier)] @font-lock-variable-name-face))
+     
      (default_parameter (identifier) @font-lock-variable-name-face)
      (parameters [(identifier)] @font-lock-variable-name-face)
-     [(no_option) (inv_option) (default_option) (option_name)] @font-lock-variable-name-face
      (lambda_expression "{" [(identifier)] @font-lock-variable-name-face "->")
-     
+
      [(marker_definition) (endmarker)] @font-lock-type-face)
    
    :language 'vim
@@ -340,7 +353,18 @@
        (scope) @_scope
        (identifier) @font-lock-constant-face
        (:match "\\(?:true\\|false\\)\\'" @font-lock-constant-face))))
-         
+
+   :language 'vim
+   :feature 'assignment
+   :override 'keep
+   '((set_item
+      ;; option: (option_name) @font-lock-variable-name-face
+      value: (set_value) @font-lock-string-face)
+     (env_variable (identifier) @font-lock-variable-name-face)
+     (map_statement
+      lhs: _ @font-lock-variable-name-face
+      rhs: _ @font-lock-string-face))
+
    :language 'vim
    :feature 'operator
    `([(match_case) (bang) (spread) ,@vimscript-ts-mode--operators]
@@ -389,18 +413,6 @@
    :language 'vim
    :feature 'variable
    '((identifier) @font-lock-variable-use-face)
-
-   :language 'vim
-   :feature 'assignment
-   :override 'keep
-   '((set_item
-      option: (option_name) @font-lock-variable-name-face
-      value: (set_value) @font-lock-string-face)
-     (let_statement (_) @font-lock-variable-name-face)
-     (env_variable (identifier) @font-lock-variable-name-face)
-     (map_statement
-      lhs: (map_side) @font-lock-variable-name-face
-      rhs: _ @font-lock-string-face))
 
    ;; :language 'vim
    ;; :feature 'error
