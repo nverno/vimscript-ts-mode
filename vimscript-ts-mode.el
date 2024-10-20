@@ -28,7 +28,7 @@
 ;;
 ;; This package defines a major mode for vimscript buffers using the
 ;; tree-sitter parser from https://github.com/neovim/tree-sitter-vim.
-;; 
+;;
 ;; It provides the following features:
 ;;  - indentation
 ;;  - font-locking
@@ -46,7 +46,7 @@
 ;;     (add-to-list
 ;;      'treesit-language-source-alist
 ;;      '(vim "https://github.com/neovim/tree-sitter-vim"))
-;; 
+;;
 ;; Optionally, install grammars for `lua-ts-mode' and `ruby-ts-mode' to
 ;; enable font-locking/indentation for embedded lua / ruby code.
 ;;
@@ -91,7 +91,8 @@
 
 (defface vimscript-ts-mode-embedded-face
   '((t :inherit (org-block) :extend t))
-  "Face to highlight embedded language blocks.")
+  "Face to highlight embedded language blocks."
+  :group 'vim)
 
 ;;; Syntax
 
@@ -249,12 +250,12 @@
      (syntax_argument [(pattern)] @vimscript-ts-mode--fontify-syntax-pattern)
      (syntax_statement [(pattern)] @vimscript-ts-mode--fontify-syntax-pattern)
      [(pattern) (pattern_multi)] @vimscript-ts-mode-regexp-face
-     
+
      [(command) (filename) (string_literal)] @font-lock-string-face
      (heredoc (body) @font-lock-string-face)
      (colorscheme_statement (name) @font-lock-string-face)
      (syntax_statement (keyword) @font-lock-string-face))
-   
+
    :language 'vim
    :feature 'escape-sequence
    :override 'prepend
@@ -264,9 +265,9 @@
      ((pattern_multi) @font-lock-number-face
       (:match ,(rx "\\{") @font-lock-number-face))
      (pattern_multi) @font-lock-operator-face
-     
+
      ["\\|" "\\(" "\\)" "\\%(" "\\z("] @font-lock-regexp-grouping-construct)
-   
+
    :language 'vim
    :feature 'keyword
    `([,@vimscript-ts-mode--keywords (unknown_command_name)] @font-lock-keyword-face
@@ -300,13 +301,13 @@
       :anchor (scoped_identifier (identifier) @font-lock-variable-name-face))
      (let_statement
       :anchor (list_assignment [(identifier)] @font-lock-variable-name-face))
-     
+
      (default_parameter (identifier) @font-lock-variable-name-face)
      (parameters [(identifier)] @font-lock-variable-name-face)
      (lambda_expression "{" [(identifier)] @font-lock-variable-name-face "->")
 
      [(marker_definition) (endmarker)] @font-lock-type-face)
-   
+
    :language 'vim
    :feature 'property
    '((command_attribute
@@ -315,7 +316,7 @@
             name: _ @font-lock-constant-face
             val: (identifier) @font-lock-function-name-face :?)
       :?)
-     
+
      (hl_attribute
       key: _ @font-lock-property-name-face)
 
@@ -334,7 +335,7 @@
      (keycode) @vimscript-ts-mode-keycode-face
      (hl_group) @vimscript-ts-mode-scope-face
      [(scope) (scope_dict) "a:" "$"] @vimscript-ts-mode-scope-face)
-   
+
    :language 'vim
    :feature 'constant
    '(((identifier) @font-lock-constant-face
@@ -342,7 +343,7 @@
      [(au_event) (au_once) (au_nested)] @font-lock-constant-face
      (normal_statement (commands) @font-lock-constant-face)
      (hl_attribute _ "=" _ @font-lock-constant-face))
-   
+
    :language 'vim
    :feature 'literal
    '([(float_literal) (integer_literal)] @font-lock-number-face
@@ -396,7 +397,7 @@
 
      (call_expression
       function: (scoped_identifier (identifier) @font-lock-function-call-face))
-     
+
      ((set_item
        option: (option_name) @_option
        value: (set_value) @font-lock-function-name-face)
@@ -511,12 +512,12 @@
     ;; Font-Locking
     (setq-local treesit-font-lock-feature-list vimscript-ts-mode--feature-list)
     (setq-local treesit-font-lock-settings vimscript-ts-mode--font-lock-settings)
-    
+
     ;; Navigation
     (setq-local treesit-defun-tactic 'top-level)
     (setq-local treesit-defun-name-function #'vimscript-ts-mode--defun-name)
     (setq-local treesit-defun-type-regexp (rx (or "function_definition")))
-    
+
     ;; navigation objects
     (setq-local treesit-thing-settings
                 `((vim
